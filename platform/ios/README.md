@@ -8,7 +8,7 @@ The emulation is not this project's work. Applesauce ships two emulator cores �
 
 | Item | Current status |
 | --- | --- |
-| App version | 0.4.0 |
+| App version | 0.4.1 |
 | Emulator cores | HyperHLE v1.0.6 and touchHLE 0.2.3, switchable per game |
 | Minimum target | iOS 15.0 |
 | Tested environment | iPhone 16 Pro running iOS 27 beta 4 (24A5390f) |
@@ -35,11 +35,11 @@ To move your games across:
 
 1. Open the iOS Files app and go to **On My iPhone**.
 2. Find the old app's folder. It is named *HyperHLE* if you had 0.2.0 or 0.3.0, or *touchHLE* if you had 0.1.0.
-3. Move the `touchHLE_apps` folder from there into the **Applesauce** folder.
-4. Move `touchHLE_sandbox` too, if you want your saves.
-5. Delete the old app.
+3. Copy `touchHLE_apps` into the **Applesauce** folder for your games.
+4. Copy `touchHLE_sandbox` too for your saves, and `touchHLE_options.txt` if you customized game options. Back up any existing Applesauce saves before merging or replacing folders.
+5. Check that your games and saves work in Applesauce before deleting the old app.
 
-App-wide settings do not move; set them again under Settings. Per-game settings live with the game.
+App-wide settings and per-game core selections are stored in the old app's preferences; set those again in Applesauce. Copying game files alone does not transfer saves or core selections.
 
 ## Screenshots
 
@@ -118,10 +118,18 @@ The public IPA must remain unsigned. It contains no Apple ID, certificate, provi
 This is the simplest public installation route.
 
 1. Install [AltStore Classic](https://altstore.io/) and complete its normal AltServer setup.
-2. Download `Applesauce-iOS-unsigned.ipa` from this repository's GitHub Releases.
-3. In AltStore, open **My Apps**, tap **+**, and select the IPA from Files.
-4. Let AltStore sign and install it with your Apple account.
+2. Open **Sources → +** in AltStore and paste the [Applesauce source](https://raw.githubusercontent.com/johnny901901901/Applesauce/ios-host/distribution/altstore-source.json) URL below.
+3. Open the source and choose **Applesauce**, rather than either superseded touchHLE listing.
+4. Let AltStore sign and install it with your Apple account. Future published updates appear in AltStore.
 5. Complete the [JIT setup](#enable-jit) before starting a game.
+
+```text
+https://raw.githubusercontent.com/johnny901901901/Applesauce/ios-host/distribution/altstore-source.json
+```
+
+The source uses the ordinary unsigned IPA, not either TrollStore build. Adding it does not enable JIT or change Apple's signing limits. It is an AltStore **Classic** source, not an AltStore PAL listing.
+
+Manual installation still works: download `Applesauce-iOS-unsigned.ipa` from [GitHub Releases](https://github.com/johnny901901901/Applesauce/releases), then choose it in **My Apps → +**.
 
 With a free Apple account, Apple limits Personal Team profiles to seven days and three installed apps per device. AltStore can refresh apps before they expire while it can reach AltServer. See [Apple's Personal Team limits](https://developer.apple.com/help/account/basics/about-your-developer-account) and [AltStore's refresh explanation](https://faq.altstore.io/altstore-classic/your-altstore).
 
@@ -273,12 +281,13 @@ Never attach games, saves, pairing files, certificates, provisioning profiles, s
 - macOS with Xcode 26 or newer and its command-line tools.
 - Stable Rust installed through [rustup](https://rustup.rs/).
 - CMake and Ninja.
+- Python 3 for packaging and release validation.
 - Boost headers.
 
 Homebrew can install the non-Xcode dependencies:
 
 ```sh
-brew install cmake ninja boost
+brew install cmake ninja boost python
 rustup target add aarch64-apple-ios
 rustup target add aarch64-apple-ios-sim
 ```

@@ -161,16 +161,13 @@ fi
 # ld leaves the string pool 4-byte aligned whenever the dylib happens to have an
 # odd number of indirect symbols, and dyld then refuses to load it. See
 # fix-linkedit-alignment.py.
-python3 "$ROOT/scripts/fix-linkedit-alignment.py" "$CORE_OUT_DIR"/*.dylib
+python3 "$ROOT/scripts/fix-linkedit-alignment.py" "$CORE_OUT_DIR/$CORE_DYLIB"
 
 # A core built from another checkout is copied in beside this repository's, so
 # the Embed-Cores build phase finds every core in one place.
 if [ "$CORE_REPO" != "$REPO" ]; then
     HOST_OUT_DIR="$REPO/build/rust-ios-native/$TARGET/$PROFILE_DIR"
     mkdir -p "$HOST_OUT_DIR"
-    for dylib in "$CORE_OUT_DIR"/*.dylib; do
-        [ -f "$dylib" ] || continue
-        cp -f "$dylib" "$HOST_OUT_DIR/"
-        echo "Copied $(basename "$dylib") into $HOST_OUT_DIR"
-    done
+    cp -f "$CORE_OUT_DIR/$CORE_DYLIB" "$HOST_OUT_DIR/"
+    echo "Copied $CORE_DYLIB into $HOST_OUT_DIR"
 fi

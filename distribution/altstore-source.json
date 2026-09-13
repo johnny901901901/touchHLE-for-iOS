@@ -4,6 +4,9 @@
   "description": "Applesauce plays supported 32-bit iPhone games on modern devices. One app carrying two emulator cores, HyperHLE and touchHLE, which support different sets of games; you choose which one runs each game. An unaffiliated fork, endorsed by neither project. JIT and legally obtained decrypted 32-bit IPAs are required. Games are not included.",
   "iconURL": "https://raw.githubusercontent.com/johnny901901901/Applesauce/ios-host/platform/ios/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
   "website": "https://github.com/johnny901901901/Applesauce",
+  "headerURL": "https://raw.githubusercontent.com/johnny901901901/Applesauce/ios-host/branding/banner.png",
+  "nsfw": false,
+  "featuredApps": ["io.github.johnny901901901.applesauce"],
   "tintColor": "F01F14",
   "apps": [
     {
@@ -11,7 +14,7 @@
       "bundleIdentifier": "io.github.johnny901901901.applesauce",
       "developerName": "Unofficial iOS port contributors",
       "subtitle": "A playful emulator for iOS",
-      "localizedDescription": "Plays supported 32-bit iPhone games on modern devices, carrying both the HyperHLE v1.0.6 and touchHLE 0.2.3 emulator cores so you can pick which one runs each game. An unaffiliated fork, endorsed by neither project. JIT must be enabled for each new app process. No games are included.",
+      "localizedDescription": "Bring supported 32-bit iPhone games back to your device with a native game library, original app icons, persistent saves, per-game emulator selection and an optional FPS counter. Applesauce includes HyperHLE v1.0.6 and touchHLE 0.2.3; compatibility depends on the exact game version and selected core.\n\nNo jailbreak is required for AltStore Classic installation. JIT is required each time Applesauce starts as a new process; enable it with StikDebug and LocalDevVPN on supported iOS versions, or AltJIT. Adding this source does not enable JIT automatically. Older iOS devices may need the separate TrollStore builds on GitHub rather than this Classic download.\n\nNo games are included. Bring your own legally obtained, decrypted 32-bit IPAs. Applesauce is an independent, unofficial port; credit for the emulation belongs to touchHLE and HyperHLE.\n\nInstallation and troubleshooting: https://github.com/johnny901901901/Applesauce/blob/ios-host/platform/ios/README.md",
       "iconURL": "https://raw.githubusercontent.com/johnny901901901/Applesauce/ios-host/platform/ios/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
       "tintColor": "F01F14",
       "category": "games",
@@ -33,9 +36,7 @@
         }
       ],
       "appPermissions": {
-        "entitlements": [
-          "get-task-allow"
-        ],
+        "entitlements": [],
         "privacy": {}
       }
     },
@@ -76,9 +77,7 @@
         }
       ],
       "appPermissions": {
-        "entitlements": [
-          "get-task-allow"
-        ],
+        "entitlements": [],
         "privacy": {}
       }
     },
@@ -109,9 +108,7 @@
         }
       ],
       "appPermissions": {
-        "entitlements": [
-          "get-task-allow"
-        ],
+        "entitlements": [],
         "privacy": {}
       }
     }

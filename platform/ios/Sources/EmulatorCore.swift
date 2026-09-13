@@ -120,6 +120,10 @@ final class EmulatorCore {
             let reason = dlerror().map { String(cString: $0) } ?? "unknown error"
             throw CoreLoadError(kind: kind, reason: reason)
         }
+        var loadedAllSymbols = false
+        defer {
+            if !loadedAllSymbols { dlclose(handle) }
+        }
 
         func symbol<T>(_ name: String, as type: T.Type = T.self) throws -> T {
             guard let address = dlsym(handle, name) else {
@@ -141,6 +145,7 @@ final class EmulatorCore {
         metadataFree = try symbol("touchhle_ios_game_metadata_free")
         requestExit = try symbol("touchhle_ios_request_exit")
         currentFPS = try symbol("touchhle_ios_current_fps")
+        loadedAllSymbols = true
     }
 }
 

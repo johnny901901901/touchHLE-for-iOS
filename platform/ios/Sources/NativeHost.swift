@@ -196,15 +196,14 @@ private final class GameLibrary: ObservableObject {
     @Published var launchError: String?
     @Published var heldLaunch: HeldLaunch?
     @Published var isLaunching = false
+    @Published var isImporting = false
 
     let appsDirectory: URL
 
-    /// The core used to read game metadata. Whichever core will actually run a
-    /// game is loaded when it starts. If the default core cannot be loaded, any
-    /// other core reports the same things, and a library with names and icons
-    /// beats one without.
+    /// Prefer this port's metadata parser, which catches malformed-bundle
+    /// panics before they reach Swift, regardless of the selected gameplay core.
     private var metadataCore: EmulatorCore? {
-        let preferred = CoreSelection.defaultKind
+        let preferred: CoreKind = CoreKind.hyperHLE.isAvailable ? .hyperHLE : CoreSelection.defaultKind
         if let core = try? EmulatorCore.load(preferred) {
             return core
         }
@@ -223,6 +222,7 @@ private final class GameLibrary: ObservableObject {
     }
 
     func reload() {
+        guard !isLaunching, !isImporting else { return }
         do {
             try FileManager.default.createDirectory(
                 at: appsDirectory,
@@ -244,27 +244,52 @@ private final class GameLibrary: ObservableObject {
     }
 
     func importGame(from sourceURL: URL) {
-        let hasAccess = sourceURL.startAccessingSecurityScopedResource()
-        defer {
-            if hasAccess {
-                sourceURL.stopAccessingSecurityScopedResource()
-            }
-        }
+        guard !isLaunching, !isImporting else { return }
+        isImporting = true
+        let destinationURL = uniqueDestination(for: sourceURL.lastPathComponent)
+        let stagingURL = appsDirectory.appendingPathComponent(".import-\(UUID().uuidString)")
 
-        do {
-            try FileManager.default.createDirectory(
-                at: appsDirectory,
-                withIntermediateDirectories: true
-            )
-            let destinationURL = uniqueDestination(for: sourceURL.lastPathComponent)
-            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+        Task {
+            do {
+                try await Task.detached(priority: .userInitiated) {
+                    let hasAccess = sourceURL.startAccessingSecurityScopedResource()
+                    defer {
+                        if hasAccess {
+                            sourceURL.stopAccessingSecurityScopedResource()
+                        }
+                        try? FileManager.default.removeItem(at: stagingURL)
+                    }
+                    try FileManager.default.createDirectory(
+                        at: stagingURL.deletingLastPathComponent(),
+                        withIntermediateDirectories: true
+                    )
+                    var coordinationError: NSError?
+                    var copyError: Error?
+                    NSFileCoordinator().coordinate(
+                        readingItemAt: sourceURL,
+                        options: [],
+                        error: &coordinationError
+                    ) { coordinatedURL in
+                        do {
+                            try FileManager.default.copyItem(at: coordinatedURL, to: stagingURL)
+                            try FileManager.default.moveItem(at: stagingURL, to: destinationURL)
+                        } catch {
+                            copyError = error
+                        }
+                    }
+                    if let coordinationError { throw coordinationError }
+                    if let copyError { throw copyError }
+                }.value
+            } catch {
+                importError = error.localizedDescription
+            }
+            isImporting = false
             reload()
-        } catch {
-            importError = error.localizedDescription
         }
     }
 
     func delete(_ game: GameFile) {
+        guard !isLaunching, !isImporting else { return }
         do {
             try FileManager.default.removeItem(at: game.url)
             reload()
@@ -280,6 +305,7 @@ private final class GameLibrary: ObservableObject {
         networkAccess: Bool,
         analogTilt: Bool
     ) {
+        guard !isLaunching, !isImporting, heldLaunch == nil else { return }
         guard touchhle_ios_jit_available() else {
             heldLaunch = HeldLaunch(
                 game: game,
@@ -317,6 +343,7 @@ private final class GameLibrary: ObservableObject {
         networkAccess: Bool,
         analogTilt: Bool
     ) {
+        guard !isLaunching, !isImporting else { return }
         let core: EmulatorCore
         do {
             core = try EmulatorCore.load(
@@ -388,9 +415,7 @@ private final class GameLibrary: ObservableObject {
 
     private func gameFile(from url: URL) -> GameFile {
         let fallbackName = url.deletingPathExtension().lastPathComponent
-        // Reading a game's name, icon and orientations does not run it, and the
-        // cores all report the same things, so the default core does this for
-        // the whole library rather than loading every core up front.
+        // Reading metadata does not run guest code.
         guard let core = metadataCore,
               let metadata = url.path.withCString({ core.metadataCreate($0) })
         else {
@@ -554,7 +579,7 @@ private final class GameControlsViewController: UIViewController {
 
         NSLayoutConstraint.activate([
             exitButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
-            exitButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            exitButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
             exitButton.widthAnchor.constraint(equalToConstant: 48),
             exitButton.heightAnchor.constraint(equalToConstant: 48)
         ])
@@ -569,14 +594,11 @@ private final class GameControlsViewController: UIViewController {
         ])
 
         updateFPS()
-        fpsTimer = Timer.scheduledTimer(
-            timeInterval: 0.5,
-            target: self,
-            selector: #selector(updateFPS),
-            userInfo: nil,
-            repeats: true
-        )
-        RunLoop.main.add(fpsTimer!, forMode: .common)
+        let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.updateFPS()
+        }
+        fpsTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
     }
 
     deinit {
@@ -615,11 +637,11 @@ final class TouchHLENativeHost: NSObject {
     static func restoreHostWindow() {
         guard let window = shared.window else { return }
         window.makeKeyAndVisible()
-        if #available(iOS 16.0, *) {
-            window.windowScene?.requestGeometryUpdate(
-                .iOS(interfaceOrientations: .portrait)
-            )
-        }
+        touchHLEApplyOrientation(
+            .portrait,
+            viewController: window.rootViewController,
+            scene: window.windowScene
+        )
     }
 
     @MainActor
@@ -915,11 +937,12 @@ private struct LibraryView: View {
             } message: { _ in
                 Text(JITMethod.current.unavailableMessage)
             }
+            .disabled(library.isLaunching || library.isImporting)
             .overlay {
-                if library.isLaunching {
+                if library.isLaunching || library.isImporting {
                     VStack(spacing: 12) {
                         ProgressView()
-                        Text("Starting game…")
+                        Text(library.isImporting ? "Importing game…" : "Starting game…")
                             .font(.headline)
                     }
                     .padding(24)
@@ -1352,6 +1375,12 @@ private struct DeveloperToolsView: View {
 private struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
 
+    private var versionDescription: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Unknown"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "Unknown"
+        return "Version \(version) (\(build))"
+    }
+
     /// The asset catalog copy, not the app icon. `CFBundleIconFiles` only
     /// reaches `AppIcon60x60`, whose largest bundled representation is 120x120,
     /// and this is drawn at 88pt — 264 pixels on a 3x screen, so the icon
@@ -1398,6 +1427,9 @@ private struct AboutView: View {
                                 .font(.title2.bold())
                             Text("A playful emulator for iOS")
                                 .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Text(versionDescription)
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 

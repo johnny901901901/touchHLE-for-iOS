@@ -67,10 +67,14 @@ pub unsafe extern "C" fn touchhle_ios_game_metadata_create(
         Ok(path) => std::path::Path::new(path),
         Err(_) => return std::ptr::null_mut(),
     };
-    let metadata = match touchHLE::inspect_host_app(path) {
-        Ok(metadata) => metadata,
-        Err(error) => {
+    let metadata = match std::panic::catch_unwind(|| touchHLE::inspect_host_app(path)) {
+        Ok(Ok(metadata)) => metadata,
+        Ok(Err(error)) => {
             eprintln!("Could not inspect game metadata: {error}");
+            return std::ptr::null_mut();
+        }
+        Err(_) => {
+            eprintln!("Could not inspect game metadata: the bundle parser panicked");
             return std::ptr::null_mut();
         }
     };

@@ -59,11 +59,16 @@ if [ ! -d "$APP" ]; then
     exit 1
 fi
 
-# A real signature carries a team identifier; ldid's and "none at all" do not.
-if codesign -dvvv "$APP" 2>&1 | grep -q 'TeamIdentifier=[^n]'; then
-    echo "The IPA is signed with a developer identity. Refusing release validation." >&2
-    exit 1
-fi
+# Check embedded cores too: signing the host and signing its libraries are
+# separate build steps, so an unsigned host alone is not enough.
+find "$APP" -type f -print | while IFS= read -r binary; do
+    file "$binary" | grep -q 'Mach-O' || continue
+    team=$(codesign -dvvv "$binary" 2>&1 | awk -F= '/^TeamIdentifier=/ { print $2 }')
+    if [ -n "$team" ] && [ "$team" != 'not set' ]; then
+        echo "A binary is signed with a developer identity. Refusing release validation." >&2
+        exit 1
+    fi
+done
 
 if ! command -v ldid >/dev/null 2>&1; then
     echo "This check needs ldid to read the embedded entitlements (brew install ldid)." >&2
@@ -73,8 +78,9 @@ fi
 ENTITLEMENTS=$(ldid -e "$APP/Applesauce" 2>/dev/null || true)
 
 require_entitlement() {
-    if ! printf '%s' "$ENTITLEMENTS" | grep -q "<key>$1</key>"; then
-        echo "Expected the $1 entitlement, and it is not there." >&2
+    if ! printf '%s' "$ENTITLEMENTS" | python3 -c \
+        'import plistlib, sys; sys.exit(0 if plistlib.loads(sys.stdin.buffer.read()).get(sys.argv[1]) is True else 1)' "$1"; then
+        echo "Expected the $1 entitlement to be true." >&2
         exit 1
     fi
 }
@@ -147,7 +153,7 @@ fi
 
 file "$APP/Applesauce" | grep -q 'arm64'
 
-echo "Verified unsigned IPA"
+echo "Verified $EXPECT IPA"
 echo "Bundle: $BUNDLE_ID"
 echo "Version: $VERSION ($BUILD)"
 echo "Size: $(stat -f '%z' "$IPA") bytes"

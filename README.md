@@ -29,12 +29,28 @@ in your library to give that game its own core.
 
 | | |
 | --- | --- |
-| Latest build | 0.4.0 |
+| Latest build | 0.4.1 |
 | Emulator cores | HyperHLE v1.0.6 and touchHLE 0.2.3, switchable per game |
 | Minimum iOS | 15.0 |
 | Tested on | iPhone 16 Pro, iOS 27 beta 4 (24A5390f) |
 | JIT | Required each time the app starts as a new process |
 | Games | Not included — bring your own decrypted 32-bit IPA |
+
+## Install With AltStore Classic
+
+In AltStore Classic, open **Sources → +** and paste the
+[Applesauce source](https://raw.githubusercontent.com/johnny901901901/Applesauce/ios-host/distribution/altstore-source.json) URL:
+
+```text
+https://raw.githubusercontent.com/johnny901901901/Applesauce/ios-host/distribution/altstore-source.json
+```
+
+Install **Applesauce** from the source. Future releases appear in AltStore,
+so you can update without downloading each IPA manually. Normal signing,
+refresh and JIT requirements still apply. This source is for **AltStore Classic**;
+the TrollStore builds remain separate downloads.
+
+**[Installation and JIT setup](platform/ios/README.md#install-the-unsigned-ipa)**
 
 ## Which build do I want?
 
@@ -66,10 +82,13 @@ old app instead of replacing it, with an empty game library.
 
 To bring your games across, open Files and go to *On My iPhone*. The old app's
 folder is named after whichever version you have — *HyperHLE* for 0.2.0 and
-0.3.0, *touchHLE* for 0.1.0. Move the `touchHLE_apps` folder out of it and into
-the *Applesauce* folder, then delete the old app.
-Per-game settings move with it; the app-wide settings in the old app do not, so
-set those again in Settings.
+0.3.0, *touchHLE* for 0.1.0. Copy both `touchHLE_apps` (games) and
+`touchHLE_sandbox` (saves) into the *Applesauce* folder. Copy
+`touchHLE_options.txt` too if you customized game options. Check that your games
+and saves work in Applesauce before deleting the old app.
+App-wide settings and per-game core selections are stored in the old app's
+preferences and must be set again. Do not replace an existing Applesauce saves
+folder without backing it up first.
 
 ## Screenshots
 

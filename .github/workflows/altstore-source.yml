@@ -1,0 +1,85 @@
+name: AltStore source
+
+on:
+  push:
+    branches: [ios-host]
+    paths:
+      - distribution/altstore-source.json
+      - platform/ios/scripts/altstore_source.py
+      - tests/test_altstore_source.py
+      - .github/workflows/altstore-source.yml
+  pull_request:
+    branches: [ios-host]
+    paths:
+      - distribution/altstore-source.json
+      - platform/ios/scripts/altstore_source.py
+      - tests/test_altstore_source.py
+      - .github/workflows/altstore-source.yml
+  release:
+    types: [published, edited]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Published release tag to add to the source
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: altstore-source-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test source tooling
+        run: python3 -m unittest discover -s tests -p test_altstore_source.py -v
+      - name: Validate source
+        run: python3 platform/ios/scripts/altstore_source.py distribution/altstore-source.json
+
+  update:
+    needs: validate
+    if: >-
+      github.repository == 'johnny901901901/Applesauce' &&
+      (github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'release' && !github.event.release.prerelease && !github.event.release.draft))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: altstore-source-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ios-host
+      - name: Download published unsigned IPA and release metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/altstore"
+          gh release view "$RELEASE_TAG" --json tagName,publishedAt,body,assets,isDraft,isPrerelease > "$RUNNER_TEMP/altstore/release.json"
+          gh release download "$RELEASE_TAG" --pattern Applesauce-iOS-unsigned.ipa --dir "$RUNNER_TEMP/altstore"
+      - name: Update and verify feed against the IPA
+        run: |
+          python3 platform/ios/scripts/altstore_source.py distribution/altstore-source.json \
+            --ipa "$RUNNER_TEMP/altstore/Applesauce-iOS-unsigned.ipa" \
+            --release-json "$RUNNER_TEMP/altstore/release.json"
+      - name: Publish source update
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- distribution/altstore-source.json; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add distribution/altstore-source.json
+          git commit -m "Update AltStore source from published IPA"
+          git push origin HEAD:ios-host

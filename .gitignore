@@ -48,6 +48,8 @@ android/build
 DUMP.txt
 
 # Local debug junk
+__pycache__/
+*.pyc
 *.log
 touchHLE_apps/
 target/
