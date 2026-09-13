@@ -6,7 +6,9 @@
   "website": "https://github.com/johnny901901901/Applesauce",
   "headerURL": "https://raw.githubusercontent.com/johnny901901901/Applesauce/ios-host/branding/banner.png",
   "nsfw": false,
-  "featuredApps": ["io.github.johnny901901901.applesauce"],
+  "featuredApps": [
+    "io.github.johnny901901901.applesauce"
+  ],
   "tintColor": "F01F14",
   "apps": [
     {
@@ -24,6 +26,16 @@
         "https://raw.githubusercontent.com/johnny901901901/Applesauce/ios-host/platform/ios/Screenshots/about.png"
       ],
       "versions": [
+        {
+          "version": "0.4.1",
+          "buildVersion": "1",
+          "minOSVersion": "15.0",
+          "size": 46123889,
+          "sha256": "92f47c7514275217dfab9862b9ababd9a87cd2325662e30f6e769f9ec2f9ca48",
+          "date": "2026-09-13T08:18:46Z",
+          "downloadURL": "https://github.com/johnny901901901/Applesauce/releases/download/ios-v0.4.1/Applesauce-iOS-unsigned.ipa",
+          "localizedDescription": "# Applesauce 0.4.1\n\nThis update improves the library, game-session cleanup and AltStore Classic\ndistribution. It keeps the same bundle identifier as 0.4.0, so it updates an\nexisting Applesauce installation and retains its library and saves.\n\n## Install and update with AltStore Classic\n\nIn AltStore Classic, open **Sources → +** and add:\n\n```text\nhttps://raw.githubusercontent.com/johnny901901901/Applesauce/ios-host/distribution/altstore-source.json\n```\n\nChoose **Applesauce** from the source. Future releases appear in AltStore;\nyou do not have to download a new IPA manually each time. Signing, refresh and\nJIT requirements still apply. The source does not enable JIT automatically.\n\n[Full installation and JIT guide](https://github.com/johnny901901901/Applesauce/blob/ios-host/platform/ios/README.md)\n\n## Fixes\n\n- Importing copies files away from the main UI thread and coordinates access\n  with Files providers such as iCloud Drive. A failed copy is cleaned up before\n  it can appear as a partially imported game.\n- Repeated taps cannot queue overlapping game launches. Library reloads are\n  also suppressed while a game or import is active.\n- Malformed game metadata that causes the HyperHLE parser to panic is caught\n  at the native bridge. The library uses this parser regardless of the chosen\n  gameplay core and falls back to a filename when metadata is unreadable.\n- The FPS timer no longer retains the game-controls screen after exiting.\n- The exit button respects the screen's safe area, and returning to the\n  library uses the iOS 15 orientation fallback too.\n- A core that fails to load all required entry points releases its library\n  handle instead of leaking a new reference on every retry.\n- Building a second core copies only that core, avoiding accidental overwrite\n  of a newer core with a stale file from another checkout.\n- Release verification now checks embedded libraries for personal signatures\n  and checks that required TrollStore entitlements are actually enabled.\n- Migration instructions include saves and correctly explain which settings\n  need to be reselected.\n\nThe AltStore source is checked against the unsigned IPA's version, build,\nminimum iOS, size, checksum and permissions. A release workflow updates the\nsource for future published releases; prereleases and TrollStore packages are\nexcluded from that automatic update.\n\n## Downloads\n\n- **Applesauce-iOS-unsigned.ipa:** AltStore Classic and other ordinary sideloaders.\n- **Applesauce-iOS-trollstore.ipa:** the existing TrollStore route for supported\n  older iOS devices, with JIT enabled through TrollStore.\n- **Applesauce-iOS-trollstore-permanent-jit.ipa:** A11 and older only. Do not\n  install this variant on A12 or newer devices.\n\nThe emulator versions remain HyperHLE v1.0.6 and touchHLE 0.2.3. This release\ndoes not claim additional game compatibility or fix the known Sims Medieval\nkeyboard/input issues. The existing gameplay reports are from earlier builds;\nfresh device regression testing of 0.4.1 is still needed.\n\nNo games are included. Full credit for emulation belongs to\n[touchHLE](https://github.com/touchHLE/touchHLE) and\n[HyperHLE](https://github.com/HyperHLE/HyperHLE). Applesauce is an independent,\nunofficial port.\n"
+        },
         {
           "version": "0.4.0",
           "buildVersion": "1",
